@@ -1,12 +1,15 @@
 ---
 services:
   docker-monitor:
-    build: .
+    image: nissou31/dns-homelab-generator:1.0.0
+    # if issues with docker network, add network_mode: host
+    # network_mode: host
     environment:
       NPM_URL: "${NPM_URL}"
       NPM_API_URL: "${NPM_API_URL}"
       NPM_USER: "${NPM_USER}"
       NPM_PASSWORD: "${NPM_PASSWORD}"
       CERTIFICATE_ID: "${CERTIFICATE_ID}"
+      HOST_IP: "${HOST_IP}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
