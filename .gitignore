@@ -1,7 +1,32 @@
-# Dependency directories
-node_modules/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+env/
 venv/
-# Editor directories and files
+ENV/
+
+# Docker
+*.tar
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+coverage.xml
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Local environment configurations
 .vscode/
-.idea/
-*.swp
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Cython debug symbols
+cython_debug/
