@@ -1,5 +1,5 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.9.19-alpine
+FROM python:3.9-slim
 
 # Install curl
 RUN apt-get update && apt-get install -y curl
