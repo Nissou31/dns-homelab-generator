@@ -1,0 +1,12 @@
+---
+services:
+  docker-monitor:
+    build: .
+    environment:
+      NPM_URL: "${NPM_URL}"
+      NPM_API_URL: "${NPM_API_URL}"
+      NPM_USER: "${NPM_USER}"
+      NPM_PASSWORD: "${NPM_PASSWORD}"
+      CERTIFICATE_ID: "${CERTIFICATE_ID}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
