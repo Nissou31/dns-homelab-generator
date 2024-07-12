@@ -1,5 +1,5 @@
 import docker
-import requests
+import requests_unixsocket
 import time
 import re
 from config import NPM_URL, NPM_API_URL, NPM_USER, NPM_PASSWORD, CERTIFICATE_ID
@@ -12,7 +12,9 @@ def get_token(npm_user, npm_password):
     url = f"{NPM_URL}/api/tokens"
     payload = {"identity": npm_user, "secret": npm_password}
     headers = {"Content-Type": "application/json"}
-    response = requests.post(url, json=payload, headers=headers, verify=False)
+    response = requests_unixsocket.post(
+        url, json=payload, headers=headers, verify=False
+    )
     if response.status_code == 200:
         return response.json().get("token")
     else:
@@ -30,8 +32,11 @@ HEADERS = {
     "Authorization": f"Bearer {token}",
 }
 
+# Create a session for Unix socket requests
+session = requests_unixsocket.Session()
+
 # Get the ID of the container running this script
-response = requests.get("http://unix:/var/run/docker.sock:/containers/self/json")
+response = session.get("http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/self/json")
 if response.status_code == 200:
     self_container_id = response.json()["Id"]
 else:
