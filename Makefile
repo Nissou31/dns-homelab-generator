@@ -9,7 +9,7 @@ build:
 
 .PHONY: run
 run:
-    docker-compose up --build
+    docker-compose up -d
 
 .PHONY: push
 push:

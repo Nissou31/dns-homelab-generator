@@ -1,8 +1,15 @@
 import docker
-import requests_unixsocket
+import requests
 import time
 import re
-from config import NPM_URL, NPM_API_URL, NPM_USER, NPM_PASSWORD, CERTIFICATE_ID
+import logging
+
+from config import NPM_URL, NPM_API_URL, NPM_USER, NPM_PASSWORD, CERTIFICATE_ID, HOST_IP
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Docker client
 client = docker.from_env()
@@ -12,9 +19,7 @@ def get_token(npm_user, npm_password):
     url = f"{NPM_URL}/api/tokens"
     payload = {"identity": npm_user, "secret": npm_password}
     headers = {"Content-Type": "application/json"}
-    response = requests_unixsocket.post(
-        url, json=payload, headers=headers, verify=False
-    )
+    response = requests.post(url, json=payload, headers=headers, verify=False)
     if response.status_code == 200:
         return response.json().get("token")
     else:
@@ -25,24 +30,13 @@ def get_token(npm_user, npm_password):
 
 # Obtain the Bearer token
 token = get_token(NPM_USER, NPM_PASSWORD)
+logging.info("Successfully obtained token")
 
 # Nginx Proxy Manager API headers
 HEADERS = {
     "Content-Type": "application/json; charset=UTF-8",
     "Authorization": f"Bearer {token}",
 }
-
-# Create a session for Unix socket requests
-session = requests_unixsocket.Session()
-
-# Get the ID of the container running this script
-response = session.get("http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/self/json")
-if response.status_code == 200:
-    self_container_id = response.json()["Id"]
-else:
-    raise Exception(
-        f"Failed to obtain self container ID: {response.status_code} {response.text}"
-    )
 
 
 def get_container_info(container):
@@ -51,7 +45,10 @@ def get_container_info(container):
     # Assuming the container name follows the pattern: {name}-{suffix}
     domain_name = re.split("-|_", name)[0] + ".awahrani.duckdns.org"
     port = list(container.attrs["NetworkSettings"]["Ports"].values())[0][0]["HostPort"]
-    ip = container.attrs["NetworkSettings"]["IPAddress"]
+    ip = HOST_IP
+    logging.info(
+        f"Container found - Name: {name}, Domain: {domain_name}, IP: {ip}, Port: {port}"
+    )
     return domain_name, ip, port
 
 
@@ -76,11 +73,16 @@ def add_proxy_host(domain_name, ip, port):
         "ssl_forced": True,
     }
     response = requests.post(NPM_API_URL, headers=HEADERS, json=payload)
+    if response.status_code == 201:
+        logging.info(f"Successfully added proxy host for {domain_name}")
+    else:
+        logging.error(f"Failed to add proxy host for {domain_name}: {response.text}")
     return response
 
 
 def main():
     """Main function to monitor new containers and add proxy hosts."""
+    logging.info("Starting Docker container monitor")
     existing_containers = {c.id for c in client.containers.list()}
     while True:
         time.sleep(10)  # Check every 10 seconds
@@ -88,18 +90,12 @@ def main():
         new_containers = current_containers - existing_containers
         if new_containers:
             for container_id in new_containers:
-                if container_id == self_container_id:
-                    continue  # Skip the container running this script
                 container = client.containers.get(container_id)
                 domain_name, ip, port = get_container_info(container)
                 response = add_proxy_host(domain_name, ip, port)
-                if response.status_code == 201:
-                    print(f"Successfully added proxy host for {domain_name}")
-                else:
-                    print(
-                        f"Failed to add proxy host for {domain_name}: {response.text}"
-                    )
             existing_containers = current_containers
+        else:
+            logging.info("No new containers detected")
 
 
 if __name__ == "__main__":
